@@ -1,4 +1,40 @@
+"use client";
+
+import { useState } from "react";
+
 export default function Home() {
+  const [text, setText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState("");
+
+  const handleAnalyse = async () => {
+    if (!text.trim()) return;
+
+    setLoading(true);
+    setError("");
+    setResult(null);
+
+    try {
+      const res = await fetch("/api/analyse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Server error");
+      }
+
+      const data = await res.json();
+      setResult(data);
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
+    }
+
+    setLoading(false);
+  };
+
   return (
     <main className="min-h-screen bg-black text-white flex flex-col">
       {/* Top bar */}
@@ -46,75 +82,71 @@ export default function Home() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-            <button className="px-5 py-2.5 rounded-full bg-yellow-400 text-black font-semibold text-sm hover:bg-yellow-300 transition w-full sm:w-auto">
-              Try the demo (coming soon)
+            <button className="px-5 py-2.5 rounded-full bg-yellow-400 text-black font-semibold text-sm hover:bg-yellow-300 transition w-full sm:w-auto" onClick={handleAnalyse}>
+              {loading ? "Analysing…" : "Analyse my issue"}
             </button>
-            <p className="text-xs text-neutral-400">
-              No credit card. No legal jargon. Just results.
-            </p>
+            <p className="text-xs text-neutral-400">Paste your issue below first.</p>
           </div>
 
-          <div className="flex flex-wrap gap-4 text-xs text-neutral-400">
-            <div className="flex items-center gap-2">
-              <div className="h-1.5 w-1.5 rounded-full bg-emerald-400"></div>
-              Refunds &amp; faulty goods
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-1.5 w-1.5 rounded-full bg-emerald-400"></div>
-              Landlords &amp; repairs
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-1.5 w-1.5 rounded-full bg-emerald-400"></div>
-              Lost parcels &amp; delays
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-1.5 w-1.5 rounded-full bg-emerald-400"></div>
-              Data &amp; DSAR rights
-            </div>
+          <div>
+            <textarea
+              rows={6}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              className="w-full resize-none rounded-xl border border-neutral-800 bg-black/60 px-3 py-2 text-xs text-neutral-300 placeholder-neutral-600 focus:outline-none"
+              placeholder="Example: ‘EVRi lost my parcel and the retailer says it’s not their problem…’"
+            />
           </div>
+
+          {error && <div className="text-red-400 text-xs">{error}</div>}
         </div>
 
-        {/* Right side – mock “Claim box” */}
-        <div className="md:w-1/2 flex items-center">
+        {/* Right side – result box */}
+        <div className="md:w-1/2 flex items-start">
           <div className="w-full rounded-2xl border border-neutral-800 bg-gradient-to-b from-neutral-900 to-black p-4 sm:p-6 shadow-[0_0_60px_rgba(250,204,21,0.12)]">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <div className="text-xs uppercase tracking-[0.2em] text-neutral-500">
-                  Quick demo
+
+            {!result && !loading && (
+              <div className="text-neutral-500 text-sm">
+                Your AI analysis will appear here.
+              </div>
+            )}
+
+            {loading && (
+              <div className="text-yellow-300 text-sm animate-pulse">
+                Analysing your issue...
+              </div>
+            )}
+
+            {result && (
+              <div className="space-y-4">
+                <div>
+                  <div className="text-xs uppercase tracking-wider text-neutral-500">
+                    Detected Issue
+                  </div>
+                  <div className="text-neutral-200 text-sm font-medium">
+                    {result.issueType}
+                  </div>
                 </div>
-                <div className="text-sm text-neutral-200">
-                  Paste your problem below:
+
+                <div>
+                  <div className="text-xs uppercase tracking-wider text-neutral-500">
+                    Summary
+                  </div>
+                  <div className="text-neutral-300 text-sm whitespace-pre-wrap">
+                    {result.summary}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-xs uppercase tracking-wider text-neutral-500">
+                    Draft Letter
+                  </div>
+                  <div className="text-neutral-300 text-sm whitespace-pre-wrap">
+                    {result.letter}
+                  </div>
                 </div>
               </div>
-              <div className="h-8 px-3 rounded-full border border-amber-400/40 bg-amber-400/10 text-[11px] flex items-center text-amber-200">
-                Beta · Coming soon
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <textarea
-                disabled
-                rows={4}
-                className="w-full resize-none rounded-xl border border-neutral-800 bg-black/60 px-3 py-2 text-xs text-neutral-300 placeholder-neutral-600 focus:outline-none"
-                placeholder="Example: ‘EVRi lost my parcel and the retailer says it’s not their problem. I’ve been going in circles for weeks and they keep fobbing me off…’"
-              />
-
-              <button className="w-full rounded-lg bg-neutral-800 text-xs py-2 text-neutral-400 cursor-not-allowed">
-                Analyse &amp; draft letter (disabled in preview)
-              </button>
-
-              <div className="mt-4 border-t border-neutral-800 pt-4 space-y-2">
-                <div className="text-xs text-neutral-400">
-                  In the live version, ResolveForge will:
-                </div>
-                <ul className="text-xs text-neutral-300 space-y-1 list-disc list-inside">
-                  <li>Detect what went wrong and who is responsible</li>
-                  <li>Explain your rights in plain English</li>
-                  <li>Generate a powerful complaint/refund letter</li>
-                  <li>Tell you exactly what to do next if they ignore you</li>
-                </ul>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </section>

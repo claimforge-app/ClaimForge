@@ -4,11 +4,11 @@ export default function Home() {
       {/* Top bar */}
       <header className="w-full border-b border-neutral-800 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-yellow-400 to-emerald-400 flex items-center justify-center text-black font-bold">
-            CF
+          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-yellow-400 to-emerald-400 flex items-center justify-center text-black font-bold text-xs">
+            RF
           </div>
           <div>
-            <div className="font-semibold tracking-tight">ClaimForge</div>
+            <div className="font-semibold tracking-tight">ResolveForge</div>
             <div className="text-xs text-neutral-400 -mt-1">
               The Refund Engine
             </div>
@@ -40,7 +40,7 @@ export default function Home() {
           </h1>
 
           <p className="text-sm sm:text-base text-neutral-300 max-w-xl">
-            ClaimForge reads your complaint, finds your rights, and writes a
+            ResolveForge reads your complaint, finds your rights, and writes a
             powerful letter for you in seconds. Refunds, lost parcels,
             landlords, data rights – all handled by one AI Refund Engine.
           </p>
@@ -105,7 +105,7 @@ export default function Home() {
 
               <div className="mt-4 border-t border-neutral-800 pt-4 space-y-2">
                 <div className="text-xs text-neutral-400">
-                  In the live version, ClaimForge will:
+                  In the live version, ResolveForge will:
                 </div>
                 <ul className="text-xs text-neutral-300 space-y-1 list-disc list-inside">
                   <li>Detect what went wrong and who is responsible</li>
@@ -121,7 +121,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t border-neutral-800 px-6 py-4 text-[11px] text-neutral-500 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
-        <div>© {new Date().getFullYear()} ClaimForge. All rights reserved.</div>
+        <div>© {new Date().getFullYear()} ResolveForge. All rights reserved.</div>
         <div className="flex gap-4">
           <button className="hover:text-neutral-300">Privacy</button>
           <button className="hover:text-neutral-300">Terms</button>

@@ -9,7 +9,7 @@ const client = new OpenAI({
 
 export async function POST(request: Request): Promise<Response> {
   try {
-    // 🔐 MUST USE await cookies()
+    // 🔐 Get user id from cookie (using await cookies())
     const cookieStore = await cookies();
     const userId = cookieStore.get("resolveforge_user_id")?.value || null;
 
@@ -29,7 +29,7 @@ export async function POST(request: Request): Promise<Response> {
 
     // 🔑 Ensure OpenAI key exists
     if (!process.env.OPENAI_API_KEY) {
-      console.error("❌ Missing OPENAI_API_KEY in production environment");
+      console.error("❌ Missing OPENAI_API_KEY in environment variables");
       return new Response(
         JSON.stringify({ error: "Server configuration error." }),
         {
@@ -69,54 +69,58 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
-    // 🧠 AI prompt — JSON ONLY
-    const prompt = `
-You are ResolveForge, an AI that analyses UK consumer complaints.
+    // 🧠 System + user messages – JSON ONLY
+    const systemPrompt = `
+You are ResolveForge, an AI that analyses UK consumer complaints under UK consumer law.
 
-You MUST respond with a single JSON object ONLY.
-No markdown. No extra text. No commentary.
+You MUST always respond in valid JSON format only.
+No markdown. No extra text. No commentary. Just a single JSON object.
 
 JSON format:
 {
-  "issueType": "string",
-  "summary": "string",
-  "letter": "string"
+  "issueType": "short label for the issue, e.g. 'Late delivery & faulty item'",
+  "summary": "3–5 sentences explaining the customer's rights in clear UK consumer law terms.",
+  "letter": "A full complaint/refund letter they can send, with proper greeting, structure and closing."
 }
+`.trim();
 
-User complaint:
+    const userPrompt = `
+Analyse the following complaint and respond ONLY with a single JSON object in the exact format described.
+
+Complaint:
 """
 ${text}
 """
 `.trim();
 
-    // 🧠 Call OpenAI with forced JSON output
-    const completion = await client.responses.create({
+    // 🧠 Call Chat Completions API with JSON mode
+    const completion = await client.chat.completions.create({
       model: "gpt-4.1-mini",
       response_format: { type: "json_object" },
-      input: prompt,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
     });
 
-    // 🔍 Extract Responses API content
-    const first = (completion as any).output?.[0];
+    const rawText = completion.choices[0]?.message?.content ?? "";
 
-    let rawText = "";
-
-    if (first?.type === "output_text" && first?.text?.value) {
-      rawText = first.text.value;
-    } else if (first?.content?.[0]?.text?.value) {
-      rawText = first.content[0].text.value;
-    }
-
-    if (!rawText) {
-      console.error("❌ No raw text from AI:", completion);
+    if (!rawText || typeof rawText !== "string") {
+      console.error("❌ No usable text returned from AI:", completion);
       return new Response(
         JSON.stringify({ error: "No content returned from AI." }),
         { status: 500, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    // 🔍 rawText SHOULD already be JSON — but we still guard it
-    let parsed;
+    // 🔍 rawText SHOULD already be pure JSON – but we still guard it
+    let parsed: {
+      issueType: string;
+      summary: string;
+      letter: string;
+      [key: string]: any;
+    };
+
     try {
       parsed = JSON.parse(rawText);
     } catch (err) {
@@ -135,7 +139,7 @@ ${text}
     ) {
       console.error("❌ AI JSON missing required fields:", parsed);
       return new Response(
-        JSON.stringify({ error: "AI response was missing data fields." }),
+        JSON.stringify({ error: "AI response was missing required fields." }),
         { status: 502, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -156,10 +160,18 @@ ${text}
       .eq("id", userId)
       .maybeSingle();
 
-    if (lookupError) console.warn("User lookup error:", lookupError);
+    if (lookupError) {
+      console.warn("User lookup error in analyse route:", lookupError);
+    }
 
-    if (userRow?.id) claimPayload.user_id = userId;
-    else console.warn("Cookie user not found in users table:", userId);
+    if (userRow?.id) {
+      claimPayload.user_id = userId;
+    } else {
+      console.warn(
+        "Cookie user not found in users table, saving claim without user_id:",
+        userId
+      );
+    }
 
     // 💾 Insert claim
     const { data: inserted, error: insertError } = await supabaseAdmin
@@ -178,7 +190,7 @@ ${text}
 
     console.log("✅ Claim inserted:", inserted.id);
 
-    // 🎉 Return AI analysis
+    // 🎉 Return AI analysis back to frontend
     return new Response(JSON.stringify(parsed), {
       status: 200,
       headers: { "Content-Type": "application/json" },

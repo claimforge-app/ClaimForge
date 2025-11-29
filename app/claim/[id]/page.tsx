@@ -1,0 +1,163 @@
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+
+// Next.js 14 now passes params as a promise.
+// We unwrap it inside the function.
+export default async function ClaimPage(props: { params: Promise<{ id: string }> }) {
+  const { id } = await props.params;
+
+  // Fetch claim from Supabase
+  const { data: claim, error } = await supabaseAdmin
+    .from("claims")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error || !claim) {
+    console.error("Error loading claim:", error);
+    notFound();
+  }
+
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        backgroundColor: "#000",
+        padding: "2rem",
+        color: "#f9fafb",
+      }}
+    >
+      <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+        
+        {/* Back Link */}
+        <div
+          style={{
+            marginBottom: "1.5rem",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            fontSize: "0.9rem",
+          }}
+        >
+          <Link
+            href="/dashboard"
+            style={{
+              color: "#e5e7eb",
+              textDecoration: "none",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.25rem",
+            }}
+          >
+            <span style={{ fontSize: "1rem" }}>←</span>
+            <span>Back to dashboard</span>
+          </Link>
+        </div>
+
+        {/* Title */}
+        <h1
+          style={{
+            fontSize: "2rem",
+            fontWeight: 700,
+            marginBottom: "1.5rem",
+            color: "#facc15",
+            textAlign: "center",
+          }}
+        >
+          {claim.issue_type || "Claim Details"}
+        </h1>
+
+        {/* Complaint */}
+        <section style={{ marginBottom: "2rem" }}>
+          <h2
+            style={{
+              fontSize: "1.1rem",
+              fontWeight: 600,
+              marginBottom: "0.5rem",
+              color: "#facc15",
+            }}
+          >
+            Original Complaint
+          </h2>
+          <div
+            style={{
+              backgroundColor: "#0a0a0a",
+              borderRadius: "12px",
+              padding: "1rem",
+              border: "1px solid #1f2937",
+              whiteSpace: "pre-wrap",
+              fontSize: "0.9rem",
+            }}
+          >
+            {claim.raw_text}
+          </div>
+        </section>
+
+        {/* Summary */}
+        <section style={{ marginBottom: "2rem" }}>
+          <h2
+            style={{
+              fontSize: "1.1rem",
+              fontWeight: 600,
+              marginBottom: "0.5rem",
+              color: "#facc15",
+            }}
+          >
+            Summary of Your Rights
+          </h2>
+          <div
+            style={{
+              backgroundColor: "#0a0a0a",
+              borderRadius: "12px",
+              padding: "1rem",
+              border: "1px solid #1f2937",
+              whiteSpace: "pre-wrap",
+              fontSize: "0.9rem",
+            }}
+          >
+            {claim.summary}
+          </div>
+        </section>
+
+        {/* Draft Letter */}
+        <section style={{ marginBottom: "2rem" }}>
+          <h2
+            style={{
+              fontSize: "1.1rem",
+              fontWeight: 600,
+              marginBottom: "0.5rem",
+              color: "#facc15",
+            }}
+          >
+            Draft Letter
+          </h2>
+          <div
+            style={{
+              backgroundColor: "#0a0a0a",
+              borderRadius: "12px",
+              padding: "1rem",
+              border: "1px solid #1f2937",
+              whiteSpace: "pre-wrap",
+              fontSize: "0.9rem",
+            }}
+          >
+            {claim.letter}
+          </div>
+        </section>
+
+        {/* Timestamp */}
+        <p
+          style={{
+            fontSize: "0.8rem",
+            opacity: 0.6,
+            marginTop: "0.5rem",
+            textAlign: "right",
+          }}
+        >
+          Created: {new Date(claim.created_at).toLocaleString()}
+        </p>
+      </div>
+    </div>
+  );
+}

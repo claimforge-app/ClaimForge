@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -78,6 +79,15 @@ Respond ONLY in valid JSON in this exact structure:
         { status: 500, headers: { "Content-Type": "application/json" } }
       );
     }
+
+    // ⭐ Save to Supabase
+await supabaseAdmin.from("claims").insert({
+  raw_text: text,
+  issue_type: parsed.issueType,
+  summary: parsed.summary,
+  letter: parsed.letter,
+  status: "draft"
+});
 
     return new Response(JSON.stringify(parsed), {
       headers: { "Content-Type": "application/json" },

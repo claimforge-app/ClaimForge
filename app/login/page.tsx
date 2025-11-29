@@ -4,139 +4,118 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
   const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg("");
+    setError("");
+
+    if (!email.trim() || !password.trim()) {
+      setError("Please enter both email and password.");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({
+          email,
+          password,
+        }),
       });
 
-      const data = await res.json().catch(() => ({}));
+      const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Login failed.");
+        setError(data.error || "Login failed.");
+        setLoading(false);
+        return;
       }
 
-      // success → go to dashboard
+      // Success → go to dashboard
       router.push("/dashboard");
-    } catch (err: any) {
-      setErrorMsg(err.message || "Login failed.");
-    } finally {
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
       setLoading(false);
     }
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#000",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "1.5rem",
-        color: "#f9fafb",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "400px",
-          backgroundColor: "#020617",
-          borderRadius: "16px",
-          border: "1px solid #1f2937",
-          padding: "1.75rem",
-        }}
-      >
-        <h1
-          style={{
-            fontSize: "1.6rem",
-            fontWeight: 700,
-            marginBottom: "0.75rem",
-            color: "#facc15",
-          }}
-        >
-          Sign in to ResolveForge
-        </h1>
-        <p
-          style={{
-            fontSize: "0.9rem",
-            opacity: 0.8,
-            marginBottom: "1.25rem",
-          }}
-        >
-          Enter your email to access your claims history.
+    <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-4">
+      <div className="w-full max-w-md rounded-2xl border border-neutral-800 bg-neutral-950/80 p-6 shadow-xl">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-yellow-400 to-emerald-400 flex items-center justify-center text-black font-bold text-xs">
+            RF
+          </div>
+          <div>
+            <div className="font-semibold tracking-tight">ResolveForge</div>
+            <div className="text-xs text-neutral-400 -mt-1">
+              Secure access to your claims
+            </div>
+          </div>
+        </div>
+
+        <h1 className="text-xl font-semibold mb-2">Sign in or create an account</h1>
+        <p className="text-xs text-neutral-400 mb-4">
+          Use the same email and password next time to see your past claims.
         </p>
 
-        <form onSubmit={handleSubmit}>
-          <label
-            style={{
-              display: "block",
-              fontSize: "0.85rem",
-              marginBottom: "0.25rem",
-            }}
-          >
-            Email address
-          </label>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            style={{
-              width: "100%",
-              padding: "0.6rem 0.75rem",
-              borderRadius: "8px",
-              border: "1px solid #1f2937",
-              backgroundColor: "#020617",
-              color: "#f9fafb",
-              marginBottom: "0.75rem",
-              fontSize: "0.9rem",
-            }}
-          />
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="block text-xs text-neutral-400 mb-1">
+              Email address
+            </label>
+            <input
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full rounded-lg border border-neutral-800 bg-black px-3 py-2 text-sm text-neutral-100 placeholder-neutral-600 focus:outline-none focus:ring-1 focus:ring-yellow-400"
+              placeholder="you@example.com"
+            />
+          </div>
 
-          {errorMsg && (
-            <p
-              style={{
-                color: "#f97373",
-                fontSize: "0.85rem",
-                marginBottom: "0.75rem",
-              }}
-            >
-              {errorMsg}
-            </p>
+          <div>
+            <label className="block text-xs text-neutral-400 mb-1">
+              Password
+            </label>
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-lg border border-neutral-800 bg-black px-3 py-2 text-sm text-neutral-100 placeholder-neutral-600 focus:outline-none focus:ring-1 focus:ring-yellow-400"
+              placeholder="At least 6 characters"
+            />
+          </div>
+
+          {error && (
+            <div className="text-xs text-red-400 bg-red-950/40 border border-red-900 rounded-md px-3 py-2">
+              {error}
+            </div>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            style={{
-              width: "100%",
-              padding: "0.6rem 0.75rem",
-              borderRadius: "999px",
-              border: "none",
-              backgroundColor: loading ? "#4b5563" : "#facc15",
-              color: "#000",
-              fontWeight: 600,
-              fontSize: "0.95rem",
-              cursor: loading ? "default" : "pointer",
-            }}
+            className="w-full mt-2 px-4 py-2.5 rounded-full bg-yellow-400 text-black text-sm font-semibold hover:bg-yellow-300 disabled:opacity-60 disabled:cursor-not-allowed transition"
           >
-            {loading ? "Signing in..." : "Continue"}
+            {loading ? "Signing you in…" : "Continue"}
           </button>
+
+          <p className="text-[11px] text-neutral-500 mt-2">
+            By continuing you agree to keep your login details secure and not
+            share access to your claims with anyone else.
+          </p>
         </form>
       </div>
-    </div>
+    </main>
   );
 }

@@ -26,29 +26,31 @@ function AuthButtons() {
     }
   };
 
+  // 🔓 Logged OUT – show Login button on ALL screen sizes, centred-friendly
   if (!loggedIn) {
     return (
       <a
         href="/login"
-        className="hidden sm:inline-flex px-3 py-1.5 rounded-full border border-neutral-700 text-neutral-200 hover:bg-neutral-900 transition"
+        className="inline-flex w-full max-w-xs justify-center px-3 py-1.5 rounded-full border border-neutral-700 text-neutral-200 text-sm hover:bg-neutral-900 transition sm:w-auto"
       >
         Log in
       </a>
     );
   }
 
+  // 🔐 Logged IN – show dashboard + logout
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
       <a
         href="/dashboard"
-        className="hidden sm:inline-flex px-3 py-1.5 rounded-full border border-neutral-700 text-neutral-200 hover:bg-neutral-900 transition"
+        className="inline-flex justify-center px-3 py-1.5 rounded-full border border-neutral-700 text-neutral-200 text-sm hover:bg-neutral-900 transition"
       >
         View your past claims
       </a>
       <button
         onClick={handleLogout}
         disabled={loggingOut}
-        className="px-3 py-1.5 rounded-full border border-neutral-800 text-xs sm:text-sm text-neutral-300 hover:bg-neutral-900 transition disabled:opacity-60"
+        className="inline-flex justify-center px-3 py-1.5 rounded-full border border-neutral-800 text-xs sm:text-sm text-neutral-300 hover:bg-neutral-900 transition disabled:opacity-60"
       >
         {loggingOut ? "Logging out…" : "Log out"}
       </button>
@@ -223,7 +225,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-black text-white flex flex-col">
       {/* Top bar */}
-      <header className="w-full border-b border-neutral-800 px-6 py-4 flex items-center justify-between">
+      <header className="w-full border-b border-neutral-800 px-6 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-yellow-400 to-emerald-400 flex items-center justify-center text-black font-bold text-xs">
             RF
@@ -235,10 +237,11 @@ export default function Home() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-3 text-sm">
+        <div className="flex w-full flex-col items-stretch gap-2 text-sm sm:w-auto sm:flex-row sm:items-center sm:justify-end">
+          {/* AuthButtons now works nicely on mobile */}
           <AuthButtons />
           <button
-            className="px-4 py-1.5 rounded-full bg-yellow-400 text-black text-sm font-semibold hover:bg-yellow-300 transition"
+            className="px-4 py-1.5 rounded-full bg-yellow-400 text-black text-sm font-semibold hover:bg-yellow-300 transition w-full sm:w-auto"
             onClick={() => setEarlyOpen((prev) => !prev)}
           >
             Get early access
@@ -412,15 +415,15 @@ export default function Home() {
                     {result.letter}
                   </div>
                 </div>
-                {/* 👉 PASTE DISCLAIMER HERE */}
-    <p className="text-[11px] text-neutral-500 mt-3 leading-relaxed">
-      <strong>Disclaimer:</strong> ResolveForge is a beta tool and does not
-      provide formal legal advice. It uses AI to analyse consumer, tenancy and
-      data-rights issues based on general UK principles. Always review your
-      letters carefully and seek independent legal advice for important or
-      urgent matters.
-    </p>
 
+                {/* Disclaimer */}
+                <p className="text-[11px] text-neutral-500 mt-3 leading-relaxed">
+                  <strong>Disclaimer:</strong> ResolveForge is a beta tool and
+                  does not provide formal legal advice. It uses AI to analyse
+                  consumer, tenancy and data-rights issues based on general UK
+                  principles. Always review your letters carefully and seek
+                  independent legal advice for important or urgent matters.
+                </p>
               </div>
             )}
           </div>
@@ -429,22 +432,21 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t border-neutral-800 px-6 py-4 text-[11px] text-neutral-500 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
-  <div>
-    © {new Date().getFullYear()} ResolveForge. All rights reserved.
-  </div>
-  <div className="flex gap-4">
-    <a href="/privacy" className="hover:text-neutral-300">
-      Privacy
-    </a>
-    <a href="/terms" className="hover:text-neutral-300">
-      Terms
-    </a>
-    <a href="/contact" className="hover:text-neutral-300">
-  Contact
-</a>
-  </div>
-</footer>
-
+        <div>
+          © {new Date().getFullYear()} ResolveForge. All rights reserved.
+        </div>
+        <div className="flex gap-4">
+          <a href="/privacy" className="hover:text-neutral-300">
+            Privacy
+          </a>
+          <a href="/terms" className="hover:text-neutral-300">
+            Terms
+          </a>
+          <a href="/contact" className="hover:text-neutral-300">
+            Contact
+          </a>
+        </div>
+      </footer>
     </main>
   );
 }

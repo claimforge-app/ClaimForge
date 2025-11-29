@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Header } from "@/components/Header";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -12,11 +13,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "ResolveForge – AI Refund Engine",
   description: "Generate legally-sound consumer complaint letters instantly.",
 };
-
 
 export default function RootLayout({
   children,
@@ -24,21 +24,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body
         style={{
           margin: 0,
           backgroundColor: "#000",
           color: "#f9fafb",
-          fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+          fontFamily:
+            "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
         }}
       >
+        {/* Global Header */}
+        <Header />
 
-
-        {/* Page content */}
-        <div>{children}</div>
+        {/* Main content */}
+        <main className="min-h-screen">
+          {children}
+        </main>
       </body>
     </html>
   );
 }
-

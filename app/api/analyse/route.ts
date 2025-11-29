@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { cookies } from "next/headers";
+import { checkAndIncrementAnalysisUsage } from "@/lib/usage";
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -8,10 +9,32 @@ const client = new OpenAI({
 
 export async function POST(request: Request) {
   try {
-    const { text } = await request.json();
-    if (!text || typeof text !== "string") {
+    // 🔐 Read user id from cookie using await cookies()
+    const cookieStore = await cookies();
+    const userId = cookieStore.get("resolveforge_user_id")?.value || null;
+
+    // ✅ Beta: require login so we can track monthly usage
+    if (!userId) {
       return new Response(
-        JSON.stringify({ error: "Missing or invalid 'text' field." }),
+        JSON.stringify({
+          error:
+            "ResolveForge is in beta. Please create a free account and log in to use the AI. Free users get 5 analyses per month. More features and higher tiers are being developed and will be available soon.",
+        }),
+        {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // 📥 Parse request body
+    const { text } = await request.json();
+    if (!text || typeof text !== "string" || text.trim().length < 20) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "Missing or invalid 'text' field. Please provide a meaningful complaint (at least a few sentences).",
+        }),
         {
           status: 400,
           headers: { "Content-Type": "application/json" },
@@ -19,6 +42,26 @@ export async function POST(request: Request) {
       );
     }
 
+    // 📊 Check & increment monthly usage (5 analyses/month on free tier)
+    const usage = await checkAndIncrementAnalysisUsage(userId);
+
+    if (!usage.ok) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "You’ve reached the free plan limit for this month. ResolveForge Beta allows 5 AI analyses per month on the free tier. More features and higher tiers are coming very soon.",
+          limit: usage.limit,
+          used: usage.used,
+          month: usage.month,
+        }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // 🧠 AI prompt
     const prompt = `
 You are an assistant helping UK consumers understand their rights and draft complaint/refund letters.
 
@@ -56,6 +99,7 @@ Respond ONLY in:
       );
     }
 
+    // 🧹 Extract JSON from model output
     const firstBrace = rawText.indexOf("{");
     const lastBrace = rawText.lastIndexOf("}");
     const jsonString =
@@ -76,10 +120,7 @@ Respond ONLY in:
       );
     }
 
-    // 🔑 Read user id from cookie
-    const cookieStore = await cookies();
-    const userId = cookieStore.get("resolveforge_user_id")?.value || null;
-
+    // 🗃️ Build payload to insert into claims table
     const payload: any = {
       raw_text: text,
       issue_type: parsed.issueType,
@@ -88,7 +129,7 @@ Respond ONLY in:
       status: "draft",
     };
 
-    // Only attach user_id if that user actually exists
+    // 🔐 Only attach user_id if that user actually exists
     if (userId) {
       const { data: userRow, error: userError } = await supabaseAdmin
         .from("users")
@@ -130,6 +171,7 @@ Respond ONLY in:
 
     console.log("Claim inserted with id:", insertData?.[0]?.id);
 
+    // ✅ Return the parsed AI result to the frontend
     return new Response(JSON.stringify(parsed), {
       headers: { "Content-Type": "application/json" },
     });

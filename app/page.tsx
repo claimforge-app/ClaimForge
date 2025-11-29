@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 
-function LoginOrDashboardButton() {
+function AuthButtons() {
   const [loggedIn, setLoggedIn] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -12,18 +13,49 @@ function LoginOrDashboardButton() {
     setLoggedIn(hasEmailCookie);
   }, []);
 
-  const href = loggedIn ? "/dashboard" : "/login";
-  const label = loggedIn ? "View your past claims" : "Log in";
+  const handleLogout = async () => {
+    try {
+      setLoggingOut(true);
+      await fetch("/api/logout", {
+        method: "POST",
+      });
+      // Hard refresh to clear UI state & go back to home as logged-out
+      window.location.href = "/";
+    } catch (err) {
+      setLoggingOut(false);
+    }
+  };
+
+  if (!loggedIn) {
+    return (
+      <a
+        href="/login"
+        className="hidden sm:inline-flex px-3 py-1.5 rounded-full border border-neutral-700 text-neutral-200 hover:bg-neutral-900 transition"
+      >
+        Log in
+      </a>
+    );
+  }
 
   return (
-    <a
-      href={href}
-      className="hidden sm:inline-flex px-3 py-1.5 rounded-full border border-neutral-700 text-neutral-200 hover:bg-neutral-900 transition"
-    >
-      {label}
-    </a>
+    <div className="flex items-center gap-2">
+      <a
+        href="/dashboard"
+        className="hidden sm:inline-flex px-3 py-1.5 rounded-full border border-neutral-700 text-neutral-200 hover:bg-neutral-900 transition"
+      >
+        View your past claims
+      </a>
+      <button
+        onClick={handleLogout}
+        disabled={loggingOut}
+        className="px-3 py-1.5 rounded-full border border-neutral-800 text-xs sm:text-sm text-neutral-300 hover:bg-neutral-900 transition disabled:opacity-60"
+      >
+        {loggingOut ? "Logging out…" : "Log out"}
+      </button>
+    </div>
   );
 }
+
 
 export default function Home() {
   const [text, setText] = useState("");
@@ -74,7 +106,7 @@ export default function Home() {
           </div>
         </div>
         <div className="flex items-center gap-3 text-sm">
-          <LoginOrDashboardButton />
+          <AuthButtons />
           <button className="px-4 py-1.5 rounded-full bg-yellow-400 text-black text-sm font-semibold hover:bg-yellow-300 transition">
             Get early access
           </button>

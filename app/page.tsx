@@ -1,6 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+function LoginOrDashboardButton() {
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const cookieString = document.cookie || "";
+    const hasEmailCookie = cookieString.includes("resolveforge_email=");
+    setLoggedIn(hasEmailCookie);
+  }, []);
+
+  const href = loggedIn ? "/dashboard" : "/login";
+  const label = loggedIn ? "View your past claims" : "Log in";
+
+  return (
+    <a
+      href={href}
+      className="hidden sm:inline-flex px-3 py-1.5 rounded-full border border-neutral-700 text-neutral-200 hover:bg-neutral-900 transition"
+    >
+      {label}
+    </a>
+  );
+}
 
 export default function Home() {
   const [text, setText] = useState("");
@@ -51,9 +74,7 @@ export default function Home() {
           </div>
         </div>
         <div className="flex items-center gap-3 text-sm">
-          <button className="hidden sm:inline-flex px-3 py-1.5 rounded-full border border-neutral-700 text-neutral-200 hover:bg-neutral-900 transition">
-            Log in
-          </button>
+          <LoginOrDashboardButton />
           <button className="px-4 py-1.5 rounded-full bg-yellow-400 text-black text-sm font-semibold hover:bg-yellow-300 transition">
             Get early access
           </button>
@@ -82,10 +103,15 @@ export default function Home() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-            <button className="px-5 py-2.5 rounded-full bg-yellow-400 text-black font-semibold text-sm hover:bg-yellow-300 transition w-full sm:w-auto" onClick={handleAnalyse}>
+            <button
+              className="px-5 py-2.5 rounded-full bg-yellow-400 text-black font-semibold text-sm hover:bg-yellow-300 transition w-full sm:w-auto"
+              onClick={handleAnalyse}
+            >
               {loading ? "Analysing…" : "Analyse my issue"}
             </button>
-            <p className="text-xs text-neutral-400">Paste your issue below first.</p>
+            <p className="text-xs text-neutral-400">
+              Paste your issue below first.
+            </p>
           </div>
 
           <div>
@@ -104,7 +130,6 @@ export default function Home() {
         {/* Right side – result box */}
         <div className="md:w-1/2 flex items-start">
           <div className="w-full rounded-2xl border border-neutral-800 bg-gradient-to-b from-neutral-900 to-black p-4 sm:p-6 shadow-[0_0_60px_rgba(250,204,21,0.12)]">
-
             {!result && !loading && (
               <div className="text-neutral-500 text-sm">
                 Your AI analysis will appear here.
@@ -153,7 +178,9 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t border-neutral-800 px-6 py-4 text-[11px] text-neutral-500 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
-        <div>© {new Date().getFullYear()} ResolveForge. All rights reserved.</div>
+        <div>
+          © {new Date().getFullYear()} ResolveForge. All rights reserved.
+        </div>
         <div className="flex gap-4">
           <button className="hover:text-neutral-300">Privacy</button>
           <button className="hover:text-neutral-300">Terms</button>

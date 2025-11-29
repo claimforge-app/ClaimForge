@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { cookies } from "next/headers";
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -8,11 +9,13 @@ const client = new OpenAI({
 export async function POST(request: Request) {
   try {
     const { text } = await request.json();
-
     if (!text || typeof text !== "string") {
       return new Response(
         JSON.stringify({ error: "Missing or invalid 'text' field." }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
       );
     }
 
@@ -24,16 +27,15 @@ User complaint:
 ${text}
 """
 
-1) Briefly identify the type of issue (e.g. "Lost parcel", "Faulty goods", "Landlord repairs", "Subscription cancellation", "Data rights/DSAR", etc).
-2) In 3–5 sentences, explain what their likely rights are under UK consumer / tenancy / data law, in plain English.
-3) Draft a clear, firm but polite complaint/refund letter they can send. Use generic placeholders like [Retailer], [Landlord], [Order Number], [Date], etc where needed.
+1) Identify the issue type.
+2) Summarise their rights in 3–5 sentences.
+3) Draft a complaint/refund letter.
 
-Respond ONLY in valid JSON in this exact structure:
-
+Respond ONLY in:
 {
-  "issueType": "short label here",
-  "summary": "3-5 sentence summary here",
-  "letter": "full letter here"
+  "issueType": "...",
+  "summary": "...",
+  "letter": "..."
 }
 `;
 
@@ -42,24 +44,18 @@ Respond ONLY in valid JSON in this exact structure:
       input: prompt,
     });
 
-    // The Responses API returns structured output; we pull out the text value
     const content = (completion as any).output?.[0]?.content?.[0];
-    const rawText: string =
-      content?.text?.value ??
-      content?.text ??
-      "";
-
+    const rawText: string = content?.text?.value ?? content?.text ?? "";
     if (!rawText) {
-      console.error("No text content in OpenAI response:", completion);
       return new Response(
-        JSON.stringify({
-          error: "No content returned from AI.",
-        }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        JSON.stringify({ error: "No content returned from AI." }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
       );
     }
 
-    // In case the model wraps JSON in extra text, extract the JSON block
     const firstBrace = rawText.indexOf("{");
     const lastBrace = rawText.lastIndexOf("}");
     const jsonString =
@@ -70,24 +66,69 @@ Respond ONLY in valid JSON in this exact structure:
     let parsed;
     try {
       parsed = JSON.parse(jsonString);
-    } catch (e) {
-      console.error("Failed to parse JSON from AI response:", rawText);
+    } catch {
       return new Response(
-        JSON.stringify({
-          error: "AI returned invalid JSON. Please try again.",
-        }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        JSON.stringify({ error: "AI returned invalid JSON." }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
       );
     }
 
-    // ⭐ Save to Supabase
-await supabaseAdmin.from("claims").insert({
-  raw_text: text,
-  issue_type: parsed.issueType,
-  summary: parsed.summary,
-  letter: parsed.letter,
-  status: "draft"
-});
+    // 🔑 Read user id from cookie
+    const cookieStore = await cookies();
+    const userId = cookieStore.get("resolveforge_user_id")?.value || null;
+
+    const payload: any = {
+      raw_text: text,
+      issue_type: parsed.issueType,
+      summary: parsed.summary,
+      letter: parsed.letter,
+      status: "draft",
+    };
+
+    // Only attach user_id if that user actually exists
+    if (userId) {
+      const { data: userRow, error: userError } = await supabaseAdmin
+        .from("users")
+        .select("id")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (userError) {
+        console.warn("Error looking up user in analyse route:", userError);
+      }
+
+      if (userRow?.id) {
+        payload.user_id = userId;
+      } else {
+        console.warn(
+          "User id from cookie not found in users table, saving claim without user_id:",
+          userId
+        );
+      }
+    }
+
+    console.log("Analyse route – inserting claim with payload:", payload);
+
+    const { data: insertData, error: insertError } = await supabaseAdmin
+      .from("claims")
+      .insert(payload)
+      .select("id");
+
+    if (insertError) {
+      console.error("Error inserting claim:", insertError);
+      return new Response(
+        JSON.stringify({ error: "Failed to save claim." }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    console.log("Claim inserted with id:", insertData?.[0]?.id);
 
     return new Response(JSON.stringify(parsed), {
       headers: { "Content-Type": "application/json" },
@@ -95,10 +136,11 @@ await supabaseAdmin.from("claims").insert({
   } catch (err) {
     console.error("Analyse API error:", err);
     return new Response(
-      JSON.stringify({
-        error: "Failed to analyse issue. Please try again later.",
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      JSON.stringify({ error: "Failed to analyse issue." }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
     );
   }
 }

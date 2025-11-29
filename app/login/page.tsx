@@ -7,6 +7,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [betaCode, setBetaCode] = useState(""); // 🆕 beta access code
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -19,6 +20,17 @@ export default function LoginPage() {
       return;
     }
 
+    // 🔐 Beta access gate
+    const requiredCode = process.env.NEXT_PUBLIC_RF_BETA_CODE;
+
+    // If a beta code is configured, enforce it
+    if (requiredCode && betaCode.trim() !== requiredCode) {
+      setError(
+        "ResolveForge is currently invite-only. Please enter the beta access code we sent you."
+      );
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -28,10 +40,11 @@ export default function LoginPage() {
         body: JSON.stringify({
           email,
           password,
+          betaCode: betaCode.trim(), // 🆕 send it along in case the API wants to enforce too
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
         setError(data.error || "Login failed.");
@@ -62,7 +75,9 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <h1 className="text-xl font-semibold mb-2">Sign in or create an account</h1>
+        <h1 className="text-xl font-semibold mb-2">
+          Sign in or create an account
+        </h1>
         <p className="text-xs text-neutral-400 mb-4">
           Use the same email and password next time to see your past claims.
         </p>
@@ -94,6 +109,23 @@ export default function LoginPage() {
               className="w-full rounded-lg border border-neutral-800 bg-black px-3 py-2 text-sm text-neutral-100 placeholder-neutral-600 focus:outline-none focus:ring-1 focus:ring-yellow-400"
               placeholder="At least 6 characters"
             />
+          </div>
+
+          {/* 🆕 Beta access code field */}
+          <div>
+            <label className="block text-sm text-neutral-300 mb-1">
+              Beta access code
+            </label>
+            <input
+              type="text"
+              value={betaCode}
+              onChange={(e) => setBetaCode(e.target.value)}
+              placeholder="Your invite code"
+              className="w-full rounded-md border border-neutral-700 bg-black px-3 py-2 text-sm text-neutral-100 placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-yellow-400"
+            />
+            <p className="mt-1 text-xs text-neutral-500">
+              ResolveForge is currently invite-only. Use the code we sent you.
+            </p>
           </div>
 
           {error && (

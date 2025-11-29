@@ -19,16 +19,50 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        style={{
+          margin: 0,
+          backgroundColor: "#000",
+          color: "#f9fafb",
+          fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+        }}
       >
-        {children}
+        {/* Simple top bar with dashboard link */}
+        <header
+          style={{
+            width: "100%",
+            padding: "0.75rem 1.5rem",
+            borderBottom: "1px solid #111827",
+            backgroundColor: "#020617",
+            display: "flex",
+            justifyContent: "flex-end",
+          }}
+        >
+          <a
+            href="/dashboard"
+            style={{
+              padding: "0.4rem 0.9rem",
+              borderRadius: "999px",
+              border: "1px solid #1f2937",
+              backgroundColor: "#030712",
+              color: "#f9fafb",
+              fontSize: "0.85rem",
+              textDecoration: "none",
+            }}
+          >
+            View your past claims
+          </a>
+        </header>
+
+        {/* Page content */}
+        <div>{children}</div>
       </body>
     </html>
   );
 }
+

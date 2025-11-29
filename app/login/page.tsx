@@ -1,15 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [betaCode, setBetaCode] = useState(""); // 🆕 beta access code
+  const [betaCode, setBetaCode] = useState(""); // beta access code
+  const [betaVerified, setBetaVerified] = useState(false); // has this device already passed beta gate?
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // 🔁 On mount, check if this device has already passed the beta gate
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const flag = window.localStorage.getItem("rf_beta_verified");
+    if (flag === "true") {
+      setBetaVerified(true);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,11 +30,10 @@ export default function LoginPage() {
       return;
     }
 
-    // 🔐 Beta access gate
     const requiredCode = process.env.NEXT_PUBLIC_RF_BETA_CODE;
 
-    // If a beta code is configured, enforce it
-    if (requiredCode && betaCode.trim() !== requiredCode) {
+    // 🔐 Only enforce beta code if this device has NOT passed the gate yet
+    if (!betaVerified && requiredCode && betaCode.trim() !== requiredCode) {
       setError(
         "ResolveForge is currently invite-only. Please enter the beta access code we sent you."
       );
@@ -40,7 +49,7 @@ export default function LoginPage() {
         body: JSON.stringify({
           email,
           password,
-          betaCode: betaCode.trim(), // 🆕 send it along in case the API wants to enforce too
+          betaCode: betaCode.trim(), // sent along in case API wants to enforce too
         }),
       });
 
@@ -50,6 +59,12 @@ export default function LoginPage() {
         setError(data.error || "Login failed.");
         setLoading(false);
         return;
+      }
+
+      // 🎟️ On first successful login with a valid beta code, mark this device as verified
+      if (!betaVerified && typeof window !== "undefined") {
+        window.localStorage.setItem("rf_beta_verified", "true");
+        setBetaVerified(true);
       }
 
       // Success → go to dashboard
@@ -111,7 +126,7 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* 🆕 Beta access code field */}
+          {/* Beta access code – required only on first successful login on this device */}
           <div>
             <label className="block text-sm text-neutral-300 mb-1">
               Beta access code
